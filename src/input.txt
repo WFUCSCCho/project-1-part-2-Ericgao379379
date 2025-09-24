@@ -1,25 +1,5 @@
-
-insert 111
-             insert 23
-
-insert 99
-insert         4
-
-isEmpty
-
-    insert     111
-
-print
-
-
-search 9
-
-remove 23
-
-remove 4
-remove 999999
-isEmptyasfh
-print
-
-insert 123
+load src/Automobile.csv
+insert bmv M440i,10,6,625,123,4432,12,72,germany
+search dodge challenger se,15,8,383,170,3563,10,70,usa
+remove dodge challenger se,15,8,383,170,3563,10,70,usa
 print
