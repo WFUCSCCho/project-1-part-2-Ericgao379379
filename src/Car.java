@@ -4,86 +4,103 @@
 //∗ @author: Eric Gao
 //∗ @date: September 22, 2025
 //∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗∗
+import java.util.Objects;
+
 public class Car implements Comparable<Car> {
-    public final String name;
-    public final String origin;
-    public final double mpg;
-    public final int cylinders;
-    public final double displacement;
-    public final int horsepower;
-    public final int weight;
-    public final double acceleration;
-    public final int modelYear;
+    public final String  name;
+    public final Double  mpg;
+    public final Integer cylinders;
+    public final Double  displacement;
+    public final Integer horsepower;     // null if "?"
+    public final Integer weight;
+    public final Double  acceleration;
+    public final Integer modelYear;
+    public final String  origin;
 
-    // default constructor
-    public Car() {
-        name = null;
-        origin = null;
-        mpg = 0;
-        cylinders = 0;
-        displacement = 0;
-        horsepower = 0;
-        weight = 0;
-        acceleration = 0;
-        modelYear = 0;
+    public Car(String name, Double mpg, Integer cylinders, Double displacement,
+                      Integer horsepower, Integer weight, Double acceleration,
+                      Integer modelYear, String origin) {
+        this.name = name; this.mpg = mpg; this.cylinders = cylinders;
+        this.displacement = displacement; this.horsepower = horsepower;
+        this.weight = weight; this.acceleration = acceleration;
+        this.modelYear = modelYear; this.origin = origin;
     }
 
-    // parameterized constructor
-    public Car(String name, double mpg, int cylinders, double displacement,
-               int horsepower, int weight, double acceleration,
-               int modelYear, String origin) {
-        this.name = name;
-        this.mpg = mpg;
-        this.cylinders = cylinders;
-        this.displacement = displacement;
-        this.horsepower = horsepower;
-        this.weight = weight;
-        this.acceleration = acceleration;
-        this.modelYear = modelYear;
-        this.origin = origin;
+    /** Build from a CSV row with 9 columns. */
+    public static Car fromCsvRow(String row) {
+        String[] p = row.split(",", -1);
+        if (p.length < 9) return null;
+        try {
+            String  name  = p[0].trim();
+            Double  mpg   = parseD(p[1]);
+            Integer cyl   = parseI(p[2]);
+            Double  disp  = parseD(p[3]);
+            Integer hp    = parseNullableI(p[4]);        // "?" allowed
+            Integer wt    = parseI(p[5]);
+            Double  acc   = parseD(p[6]);
+            Integer year  = parseI(p[7]);
+            String  orig  = p[8].trim();
+            return new Car(name, mpg, cyl, disp, hp, wt, acc, year, orig);
+        } catch (NumberFormatException e) { return null; }
     }
 
-    // copy constructor
-    public Car(Car other) {
-        this(other.name, other.mpg, other.cylinders, other.displacement,
-                other.horsepower, other.weight, other.acceleration,
-                other.modelYear, other.origin);
+    private static Integer parseI(String s){ return java.lang.Integer.valueOf(s.trim()); }
+    private static Double  parseD(String s){ return java.lang.Double.valueOf(s.trim()); }
+    private static Integer parseNullableI(String s){
+        s = s.trim(); if (s.isEmpty() || "?".equals(s)) return null; return java.lang.Integer.valueOf(s);
     }
 
-    @Override
-    public String toString() {
-        String output = "";
-        output += "Name: " + name + "\n";
-        output += "Origin: " + origin + "\n";
-        output += "Mpg: " + mpg + "\n";
-        output += "Cylinders: " + cylinders + "\n";
-        output += "Displacement: " + displacement + "\n";
-        output += "Horsepower: " + horsepower + "\n";
-        output += "Weight: " + weight + "\n";
-        output += "Acceleration: " + acceleration + "\n";
-        output += "ModelYear: " + modelYear + "\n";
-        return output;
+    /** CSV string, preserving '?' for null horsepower and trimming .0 */
+    @Override public String toString() {
+        return String.join(",",
+                name,
+                fmt(mpg), String.valueOf(cylinders), fmt(displacement),
+                (horsepower==null ? "?" : String.valueOf(horsepower)),
+                String.valueOf(weight), fmt(acceleration),
+                String.valueOf(modelYear), origin
+        );
+    }
+    private static String fmt(Double d){
+        if (d == null) return "";
+        long asInt = Math.round(d);
+        return (Math.abs(d - asInt) < 1e-9) ? java.lang.String.valueOf(asInt) : d.toString();
     }
 
-    public boolean equals(Car o) {
-        if (o == null) return false;
-        return name.equalsIgnoreCase(o.name)
-                && origin.equalsIgnoreCase(o.origin)
-                && Double.compare(mpg, o.mpg) == 0
-                && Double.compare(displacement, o.displacement) == 0
-                && Double.compare(acceleration, o.acceleration) == 0
-                && cylinders == o.cylinders
-                && horsepower == o.horsepower
-                && weight == o.weight
-                && modelYear == o.modelYear;
+    /** Total ordering using all fields; equals-consistent. */
+    @Override public int compareTo(Car o) {
+        int c;
+        if ((c = name.compareToIgnoreCase(o.name)) != 0) return c;
+        if ((c = cmp(modelYear, o.modelYear)) != 0) return c;
+        if ((c = cmp(mpg, o.mpg)) != 0) return c;
+        if ((c = cmp(cylinders, o.cylinders)) != 0) return c;
+        if ((c = cmp(displacement, o.displacement)) != 0) return c;
+        if ((c = cmp(horsepower, o.horsepower)) != 0) return c;   // nulls first
+        if ((c = cmp(weight, o.weight)) != 0) return c;
+        if ((c = cmp(acceleration, o.acceleration)) != 0) return c;
+        return origin.compareToIgnoreCase(o.origin);
+    }
+    private static <E extends Comparable<E>> int cmp(E a, E b){
+        if (a==null && b==null) return 0;
+        if (a==null) return -1;
+        if (b==null) return 1;
+        return a.compareTo(b);
     }
 
-    // Natural order for the BST:
-    // By name (case-insensitive)
-    @Override
-    public int compareTo(Car obj) {
-        if (obj == null) return -1;
-        int c = this.name.compareToIgnoreCase(obj.name);
-        return c;
+    @Override public boolean equals(Object obj){
+        if (this == obj) return true;
+        if (!(obj instanceof Car other)) return false;
+        return name.equalsIgnoreCase(other.name)
+                && Objects.equals(mpg, other.mpg)
+                && Objects.equals(cylinders, other.cylinders)
+                && Objects.equals(displacement, other.displacement)
+                && Objects.equals(horsepower, other.horsepower)
+                && Objects.equals(weight, other.weight)
+                && Objects.equals(acceleration, other.acceleration)
+                && Objects.equals(modelYear, other.modelYear)
+                && origin.equalsIgnoreCase(other.origin);
+    }
+    @Override public int hashCode(){
+        return Objects.hash(name.toLowerCase(), mpg, cylinders, displacement,
+                horsepower, weight, acceleration, modelYear, origin.toLowerCase());
     }
 }
